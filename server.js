@@ -12,8 +12,8 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 app.use("/products", productRouter);
-app.use("/categories", productRouter);
-app.use("/users", productRouter);
+app.use("/categories", categoryRouter);
+app.use("/users", userRouter);
 
 app.use(express.static(__dirname + "/public"));
 
