@@ -9,8 +9,10 @@
     "author": "Tien Le",
     "license": "ISC",
     "dependencies": {
+        "crypto-js": "^4.1.1",
         "dotenv": "^10.0.0",
         "express": "^4.17.1",
+        "jsonwebtoken": "^8.5.1",
         "mongoose": "^6.0.2",
         "morgan": "^1.10.0",
         "nodemon": "^2.0.12"

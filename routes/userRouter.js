@@ -1,50 +1,72 @@
-const express = require("express");
-const userRouter = express.Router();
+const router = require("express").Router();
+const User = require("../models/User");
+const CryptoJS = require("crypto-js");
+const verify = require("../verifyToken");
 
-userRouter
-    .route("/")
-    .all((req, res, next) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/plain");
-        next();
-    })
-    .get((req, res) => {
-        res.end("Will send all the users to you");
-    })
-    .post((req, res) => {
-        res.end(
-            `Will add the user: ${req.body.name} with email: ${req.body.email}`
-        );
-    })
-    .put((req, res) => {
-        res.statusCode = 403;
-        res.end("PUT operation not supported on /users");
-    })
-    .delete((req, res) => {
-        res.end("Deleting all users");
-    });
+// read all users (for admin only)
+router.get("/", verify, async (req, res) => {
+	if (req.user.isAdmin) {
+		try {
+			const users = await User.find();
+			res.status(200).json(users);
+		} catch (err) {
+			res.status(500).json(err);
+		}
+	} else {
+		res.status(403).json("You are not allowed to see all users!");
+	}
+});
 
-userRouter
-    .route("/:userId")
-    .all((req, res, next) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/plain");
-        next();
-    })
-    .get((req, res) => {
-        res.end(`Will send details of the user: ${req.params.userId} to you`);
-    })
-    .post((req, res) => {
-        res.statusCode = 403;
-        res.end(`POST operation not supported on /users/${req.params.userId}`);
-    })
-    .put((req, res) => {
-        res.write(`Updating the user: ${req.params.userId}\n`);
-        res.end(`Will update the user: ${req.body.name}
-        with email: ${req.body.email}`);
-    })
-    .delete((req, res) => {
-        res.end(`Deleting user: ${req.params.userId}`);
-    });
+// read 1 user by Id
+router.get("/:userId", async (req, res) => {
+	try {
+		const user = await User.findById(req.params.userId);
+		const { password, ...info } = user._doc;
+		res.status(200).json(info);
+	} catch (err) {
+		res.status(500).json(err);
+	}
+});
 
-module.exports = userRouter;
+// update 1 user by Id (for admin or owner)
+router.put("/:userId", verify, async (req, res) => {
+	if (req.user.userId === req.params.userId || req.user.isAdmin) {
+		if (req.body.password) {
+			req.body.password = CryptoJS.AES.encrypt(
+				req.body.password,
+				process.env.SECRET_KEY
+			).toString();
+		}
+
+		try {
+			const updatedUser = await User.findByIdAndUpdate(
+				req.params.userId,
+				{
+					$set: req.body,
+				},
+				{ new: true }
+			);
+			res.status(200).json(updatedUser);
+		} catch (err) {
+			res.status(500).json(err);
+		}
+	} else {
+		res.status(403).json("You can only update your account!");
+	}
+});
+
+// delete 1 user by Id (for admin or owner)
+router.delete("/:userId", verify, async (req, res) => {
+	if (req.user.userId === req.params.userId || req.user.isAdmin) {
+		try {
+			await User.findByIdAndDelete(req.params.userId);
+			res.status(200).json("User has been deleted...");
+		} catch (err) {
+			res.status(500).json(err);
+		}
+	} else {
+		res.status(403).json("You can only delete your account!");
+	}
+});
+
+module.exports = router;

@@ -1,54 +1,61 @@
-const express = require("express");
-const categoryRouter = express.Router();
+const router = require("express").Router();
+const Category = require("../models/Category");
 
-categoryRouter
-    .route("/")
-    .all((req, res, next) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/plain");
-        next();
-    })
-    .get((req, res) => {
-        res.end("Will send all the categories to you");
-    })
-    .post((req, res) => {
-        res.end(
-            `Will add the category: ${req.body.name} with description: ${req.body.description}`
-        );
-    })
-    .put((req, res) => {
-        res.statusCode = 403;
-        res.end("PUT operation not supported on /categories");
-    })
-    .delete((req, res) => {
-        res.end("Deleting all categories");
-    });
+// read all categorys
+router.get("/", async (req, res) => {
+  try {
+    const categories = await Category.find();
+    res.status(200).json(categories.reverse());
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
 
-categoryRouter
-    .route("/:categoryId")
-    .all((req, res, next) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/plain");
-        next();
-    })
-    .get((req, res) => {
-        res.end(
-            `Will send details of the category: ${req.params.categoryId} to you`
-        );
-    })
-    .post((req, res) => {
-        res.statusCode = 403;
-        res.end(
-            `POST operation not supported on /categories/${req.params.categoryId}`
-        );
-    })
-    .put((req, res) => {
-        res.write(`Updating the category: ${req.params.categoryId}\n`);
-        res.end(`Will update the category: ${req.body.name}
-        with description: ${req.body.description}`);
-    })
-    .delete((req, res) => {
-        res.end(`Deleting category: ${req.params.categoryId}`);
-    });
+// read 1 category by Id
+router.get("/:categoryId", async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.categoryId);
+    res.status(200).json(category);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
 
-module.exports = categoryRouter;
+// create 1 category
+router.post("/", async (req, res) => {
+  const newCategory = new Category(req.body);
+  try {
+    const savedCategory = await newCategory.save();
+    res.status(201).json(savedCategory);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// update 1 category by Id
+router.put("/:categoryId", async (req, res) => {
+  try {
+    const updatedCategory = await Category.findByIdAndUpdate(
+      req.params.categoryId,
+      {
+        $set: req.body,
+      },
+      { new: true }
+    );
+    res.status(200).json(updatedCategory);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// delete 1 category by Id
+router.delete("/:categoryId", async (req, res) => {
+  try {
+    await Category.findByIdAndDelete(req.params.categoryId);
+    res.status(200).json("The category has been deleted...");
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+module.exports = router;
