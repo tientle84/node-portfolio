@@ -17,14 +17,18 @@ router.get("/", verify, async (req, res) => {
 	}
 });
 
-// read 1 user by Id
-router.get("/:userId", async (req, res) => {
-	try {
-		const user = await User.findById(req.params.userId);
-		const { password, ...info } = user._doc;
-		res.status(200).json(info);
-	} catch (err) {
-		res.status(500).json(err);
+// read 1 user by Id (for admin only)
+router.get("/:userId", verify, async (req, res) => {
+	if (req.user.isAdmin) {
+		try {
+			const user = await User.findById(req.params.userId);
+			const { password, ...info } = user._doc;
+			res.status(200).json(info);
+		} catch (err) {
+			res.status(500).json(err);
+		}
+	} else {
+		res.status(403).json("You are not allowed to find users!");
 	}
 });
 
@@ -37,6 +41,8 @@ router.put("/:userId", verify, async (req, res) => {
 				process.env.SECRET_KEY
 			).toString();
 		}
+		console.log(req.user);
+		console.log(req.params.userId);
 
 		try {
 			const updatedUser = await User.findByIdAndUpdate(
@@ -51,7 +57,7 @@ router.put("/:userId", verify, async (req, res) => {
 			res.status(500).json(err);
 		}
 	} else {
-		res.status(403).json("You can only update your account!");
+		res.status(403).json("You can only update your account!!");
 	}
 });
 
